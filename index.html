@@ -87,11 +87,20 @@
     }
 
     function extractAnswers(text, questionCount) {
-      // ดึงคำตอบจากข้อความที่สแกนได้
+      // การตรวจสอบการเลือกตัวเลือก A, B, C, D, E
       const answers = [];
       for (let i = 1; i <= questionCount; i++) {
-        // สุ่มคำตอบ (สามารถเปลี่ยนเป็นวิธีการตรวจจริงได้)
-        const answer = Math.floor(Math.random() * 5) + 1;
+        // สมมุติว่าเจอข้อความที่แสดงถึงการทำเครื่องหมายในแต่ละข้อ
+        // ตัวอย่าง: A=1, B=2, C=3, D=4, E=5
+        let answer = '';
+
+        if (text.includes(`ข้อ ${i} A`)) answer = 1;
+        else if (text.includes(`ข้อ ${i} B`)) answer = 2;
+        else if (text.includes(`ข้อ ${i} C`)) answer = 3;
+        else if (text.includes(`ข้อ ${i} D`)) answer = 4;
+        else if (text.includes(`ข้อ ${i} E`)) answer = 5;
+        else answer = 0; // ถ้าไม่มีตัวเลือก ให้ถือว่าไม่ตอบ
+
         answers.push(answer);
       }
       return answers;
