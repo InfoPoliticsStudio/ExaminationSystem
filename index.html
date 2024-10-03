@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบตรวจข้อสอบ</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    h1 { text-align: center; }
+    #result { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ระบบตรวจคำตอบ</h1>
+    <input type="file" id="upload" accept="image/*">
+    <button onclick="processFile()">อัปโหลด</button>
+    <p id="status"></p>
+    <div id="result"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+  <script>
+    function processFile() {
+      const file = document.getElementById('upload').files[0];
+      if (!file) {
+        document.getElementById('status').textContent = 'กรุณาอัปโหลดไฟล์กระดาษคำตอบ';
+        return;
+      }
+
+      // ใช้ Tesseract.js เพื่อทำ OCR สแกนข้อมูลในกระดาษคำตอบ
+      Tesseract.recognize(file, 'eng').then(({ data }) => {
+        const scannedText = data.text;
+
+        // สกัดรหัสนักเรียนและคำตอบจากข้อมูลที่สแกน
+        const studentID = extractStudentID(scannedText);
+        const answers = extractAnswers(scannedText);
+
+        // ส่งข้อมูลไปยัง Google Sheets
+        sendToGoogleSheets(studentID, answers);
+      });
+    }
+
+    function extractStudentID(text) {
+      // ดึงรหัสนักเรียน 5 หลักจากข้อความที่สแกน
+      const match = text.match(/\b\d{5}\b/);
+      return match ? match[0] : null;
+    }
+
+    function extractAnswers(text) {
+      // ดึงคำตอบจากข้อความที่สแกน
+      const answers = [];
+      for (let i = 1; i <= 100; i++) {
+        // ตัวอย่างการดึงคำตอบจากข้อความ
+        const answer = Math.floor(Math.random() * 5) + 1; // ใช้ตัวเลขสุ่มสำหรับคำตอบ (สามารถเปลี่ยนเป็นวิธีที่ต้องการ)
+        answers.push(answer);
+      }
+      return answers;
+    }
+
+    function sendToGoogleSheets(studentID, answers) {
+      if (!studentID || answers.length === 0) {
+        document.getElementById('status').textContent = 'สแกนข้อมูลไม่สำเร็จ';
+        return;
+      }
+
+      fetch('https://script.google.com/macros/s/AKfycbwdAd_B4dzqHr4EQswVsJ0cBy1JzWZVh2ujQNKVZN6fIsV3XAMvUVM4vZM343LUFTmBsg/exec', {
+        method: 'POST',
+        body: JSON.stringify({ studentID, answers }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.text())
+      .then(result => {
+        document.getElementById('status').textContent = 'อัปโหลดข้อมูลสำเร็จ';
+        fetchAnswers(); // ดึงข้อมูลคำตอบล่าสุดหลังจากอัปโหลด
+      })
+      .catch(error => document.getElementById('status').textContent = 'อัปโหลดข้อมูลไม่สำเร็จ');
+    }
+
+    function fetchAnswers() {
+      fetch('https://script.google.com/macros/s/AKfycbwdAd_B4dzqHr4EQswVsJ0cBy1JzWZVh2ujQNKVZN6fIsV3XAMvUVM4vZM343LUFTmBsg/exec')
+        .then(response => response.json())
+        .then(data => {
+          const resultDiv = document.getElementById('result');
+          resultDiv.innerHTML = `<h2>รหัสนักเรียน: ${data.studentID}</h2>`;
+          data.answers.forEach((answer, index) => {
+            resultDiv.innerHTML += `<p>ข้อที่ ${index + 1}: ${answer}</p>`;
+          });
+        })
+        .catch(error => document.getElementById('status').textContent = 'ไม่สามารถดึงข้อมูลได้');
+    }
+  </script>
+</body>
+</html>
