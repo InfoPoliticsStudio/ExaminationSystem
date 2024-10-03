@@ -3,124 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบตรวจคำตอบ</title>
+  <title>อัปโหลดไฟล์กระดาษคำตอบ</title>
   <style>
     body { font-family: Arial, sans-serif; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
     h1 { margin-bottom: 20px; }
     label { display: block; margin: 10px 0 5px; }
-    input[type="number"], input[type="file"], input[type="text"] {
+    input[type="file"], input[type="text"] {
       padding: 10px;
       width: 100%;
       box-sizing: border-box;
     }
     button { padding: 10px 20px; margin-top: 20px; }
-    #result { margin-top: 20px; }
+    #status { margin-top: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>ระบบตรวจคำตอบ</h1>
+    <h1>ระบบอัปโหลดกระดาษคำตอบ</h1>
     
     <!-- Input รหัสนักเรียน -->
     <label for="studentID">รหัสนักเรียน</label>
     <input type="text" id="studentID" placeholder="กรอกรหัสนักเรียน">
 
-    <!-- Input จำนวนข้อ -->
-    <label for="questionCount">จำนวนข้อสอบ</label>
-    <input type="number" id="questionCount" placeholder="กรอกจำนวนข้อสอบ">
-
     <!-- Input อัปโหลดไฟล์ -->
     <label for="upload">อัปโหลดไฟล์กระดาษคำตอบ</label>
     <input type="file" id="upload" accept="image/*">
-    
-    <!-- ปุ่มตรวจคำตอบ -->
-    <button onclick="processFile()">อัปโหลดและตรวจสอบ</button>
+
+    <!-- ปุ่มอัปโหลด -->
+    <button onclick="uploadFile()">อัปโหลด</button>
 
     <!-- สถานะ -->
     <p id="status"></p>
-
-    <!-- ผลลัพธ์ที่แสดง -->
-    <div id="result"></div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
   <script>
-    function processFile() {
+    function uploadFile() {
       const studentID = document.getElementById('studentID').value;
-      const questionCount = document.getElementById('questionCount').value;
       const file = document.getElementById('upload').files[0];
 
-      // ตรวจสอบว่ามีข้อมูลครบหรือไม่
       if (!studentID) {
         document.getElementById('status').textContent = 'กรุณากรอกรหัสนักเรียน';
         return;
       }
-      if (!questionCount || questionCount <= 0) {
-        document.getElementById('status').textContent = 'กรุณากรอกจำนวนข้อสอบ';
-        return;
-      }
       if (!file) {
-        document.getElementById('status').textContent = 'กรุณาอัปโหลดไฟล์กระดาษคำตอบ';
+        document.getElementById('status').textContent = 'กรุณาอัปโหลดไฟล์';
         return;
       }
 
-      document.getElementById('status').textContent = 'กำลังประมวลผล...';
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('studentID', studentID);
 
-      // ใช้ Tesseract.js สแกนข้อมูลในกระดาษคำตอบ
-      Tesseract.recognize(file, 'eng').then(({ data }) => {
-        const scannedText = data.text;
-        document.getElementById('result').textContent = scannedText;
-
-        // ดึงคำตอบจากการสแกน
-        const answers = extractAnswers(scannedText, questionCount);
-
-        if (answers.length > 0) {
-          document.getElementById('result').innerHTML += `<p>คำตอบที่สแกนได้: ${answers.join(', ')}</p>`;
-        } else {
-          document.getElementById('result').innerHTML += `<p>ไม่พบคำตอบ</p>`;
-        }
-
-        // ส่งคำตอบไปยัง Google Sheets
-        sendToGoogleSheets(studentID, answers);
-      });
-    }
-
-    function extractAnswers(text, questionCount) {
-      // การตรวจสอบการเลือกตัวเลือก A, B, C, D, E
-      const answers = [];
-      for (let i = 1; i <= questionCount; i++) {
-        // สมมุติว่าเจอข้อความที่แสดงถึงการทำเครื่องหมายในแต่ละข้อ
-        // ตัวอย่าง: A=1, B=2, C=3, D=4, E=5
-        let answer = '';
-
-        if (text.includes(`ข้อ ${i} A`)) answer = 1;
-        else if (text.includes(`ข้อ ${i} B`)) answer = 2;
-        else if (text.includes(`ข้อ ${i} C`)) answer = 3;
-        else if (text.includes(`ข้อ ${i} D`)) answer = 4;
-        else if (text.includes(`ข้อ ${i} E`)) answer = 5;
-        else answer = 0; // ถ้าไม่มีตัวเลือก ให้ถือว่าไม่ตอบ
-
-        answers.push(answer);
-      }
-      return answers;
-    }
-
-    function sendToGoogleSheets(studentID, answers) {
-      // ส่งข้อมูลไปยัง Google Sheets
+      // ส่งข้อมูลไปยัง Google Apps Script
       fetch('https://script.google.com/macros/s/AKfycbwdAd_B4dzqHr4EQswVsJ0cBy1JzWZVh2ujQNKVZN6fIsV3XAMvUVM4vZM343LUFTmBsg/exec', {
         method: 'POST',
-        body: JSON.stringify({ studentID, answers }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        body: formData
       })
-      .then(response => response.text())
-      .then(result => {
-        document.getElementById('status').textContent = 'อัปโหลดข้อมูลสำเร็จ';
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('status').textContent = data.message;
       })
       .catch(error => {
-        document.getElementById('status').textContent = 'อัปโหลดข้อมูลไม่สำเร็จ';
+        document.getElementById('status').textContent = 'อัปโหลดไม่สำเร็จ: ' + error.message;
       });
     }
   </script>
