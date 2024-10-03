@@ -1,73 +1,80 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>อัปโหลดไฟล์กระดาษคำตอบ</title>
-  <style>
-    body { font-family: Arial, sans-serif; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
-    h1 { margin-bottom: 20px; }
-    label { display: block; margin: 10px 0 5px; }
-    input[type="file"], input[type="text"] {
-      padding: 10px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    button { padding: 10px 20px; margin-top: 20px; }
-    #status { margin-top: 20px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>อัปโหลดกระดาษคำตอบ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>ระบบอัปโหลดกระดาษคำตอบ</h1>
-    
-    <!-- Input รหัสนักเรียน -->
-    <label for="studentID">รหัสนักเรียน</label>
-    <input type="text" id="studentID" placeholder="กรอกรหัสนักเรียน">
 
-    <!-- Input อัปโหลดไฟล์ -->
-    <label for="upload">อัปโหลดไฟล์กระดาษคำตอบ</label>
-    <input type="file" id="upload" accept="image/*">
+    <h2>อัปโหลดกระดาษคำตอบ</h2>
+    <form id="uploadForm">
+        <label for="studentID">รหัสนักเรียน:</label>
+        <input type="text" id="studentID" name="studentID" required>
 
-    <!-- ปุ่มอัปโหลด -->
-    <button onclick="uploadFile()">อัปโหลด</button>
+        <label for="numberOfQuestions">จำนวนคำถาม:</label>
+        <input type="number" id="numberOfQuestions" name="numberOfQuestions" min="1" max="100" required>
 
-    <!-- สถานะ -->
-    <p id="status"></p>
-  </div>
+        <label for="upload">อัปโหลดไฟล์กระดาษคำตอบ:</label>
+        <input type="file" id="upload" name="file" accept="image/*" required>
 
-  <script>
-    function uploadFile() {
-      const studentID = document.getElementById('studentID').value;
-      const file = document.getElementById('upload').files[0];
+        <button type="submit">อัปโหลด</button>
+    </form>
 
-      if (!studentID) {
-        document.getElementById('status').textContent = 'กรุณากรอกรหัสนักเรียน';
-        return;
-      }
-      if (!file) {
-        document.getElementById('status').textContent = 'กรุณาอัปโหลดไฟล์';
-        return;
-      }
+    <div id="responseMessage"></div>
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('studentID', studentID);
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // ป้องกันการส่งฟอร์มตามปกติ
+            
+            const formData = new FormData(this);
+            const url = 'https://script.google.com/macros/s/AKfycbwbQx52P3brUB3Nvf-EcRp4BcMBp5Q7z0r_LnIPg-sC-96McEsZx9-STc7SDSYgumG0Cw/exec';
 
-      // ส่งข้อมูลไปยัง Google Apps Script
-      fetch('https://script.google.com/macros/s/AKfycbxxCOvMtQTTj6Awc0FMadeyXrggaN4I-9L-ZT3MFcyWECThhX1d-pCtqMjUl6dAR5VkJA/exec', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        document.getElementById('status').textContent = data.message;
-      })
-      .catch(error => {
-        document.getElementById('status').textContent = 'อัปโหลดไม่สำเร็จ: ' + error.message;
-      });
-    }
-  </script>
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('responseMessage').innerText = data.message;
+            })
+            .catch(error => {
+                document.getElementById('responseMessage').innerText = 'เกิดข้อผิดพลาด: ' + error.message;
+            });
+        });
+    </script>
 </body>
 </html>
